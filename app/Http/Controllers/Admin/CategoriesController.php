@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Categories;
+use App\Models\Post;
 use Illuminate\Contracts\View\View;
 
 use Illuminate\Http\Request;
@@ -12,7 +13,8 @@ class CategoriesController extends Controller
 {
     public function blog(): View
     {
-        return view('admin.blog');
+        $posts = Post::with('category', 'user')->latest()->get();
+        return view('admin.blog', compact('posts'));
     }
     public function blogcategories(): View
     {

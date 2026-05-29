@@ -7,6 +7,7 @@ use App\Models\Categories;
 use App\Models\Post;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class PostController extends Controller
 {
@@ -15,7 +16,8 @@ class PostController extends Controller
      */
     public function index()
     {
-        //
+        $posts = Post::with('category', 'user')->latest()->get();
+        return view('admin.blog', compact('posts'));
     }
 
     /**
@@ -74,7 +76,8 @@ class PostController extends Controller
      */
     public function edit(Post $post)
     {
-        //
+        $categories = Categories::all();
+        return view('admin.edit-blog', compact('post', 'categories'));
     }
 
     /**
@@ -82,7 +85,35 @@ class PostController extends Controller
      */
     public function update(Request $request, Post $post)
     {
-        //
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'duration' => 'required|string|max:100',
+            'category_id' => 'required|exists:categories,id',
+            'tags' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        // Process tags
+        if ($request->tags) {
+            $tags = array_map('trim', explode(',', $request->tags));
+            $validated['tags'] = $tags;
+        } else {
+            $validated['tags'] = null;
+        }
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            // Delete old image
+            if ($post->image) {
+                Storage::disk('public')->delete($post->image);
+            }
+            $validated['image'] = $request->file('image')->store('posts', 'public');
+        }
+
+        $post->update($validated);
+
+        return redirect()->route('posts.index')->with('success', 'Post updated successfully.');
     }
 
     /**
